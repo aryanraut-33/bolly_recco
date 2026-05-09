@@ -10,6 +10,8 @@ export default function AuthScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
 
+  const [showHint, setShowHint] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!answer.trim()) return;
@@ -91,13 +93,37 @@ export default function AuthScreen({ onAuth }) {
               )}
             </AnimatePresence>
 
-            <Button
-              type="submit"
-              disabled={loading || !answer.trim()}
-              className="w-full h-12 bg-transparent hover:bg-zinc-900 text-zinc-600 border border-zinc-900 rounded-none uppercase tracking-[0.3em] text-[10px] font-light transition-all duration-500"
-            >
-              {loading ? "Verifying..." : "Validate"}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                type="submit"
+                disabled={loading || !answer.trim()}
+                className="w-full h-12 bg-transparent hover:bg-zinc-900 text-zinc-600 border border-zinc-900 rounded-none uppercase tracking-[0.3em] text-[10px] font-light transition-all duration-500"
+              >
+                {loading ? "Verifying..." : "Validate"}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowHint(!showHint)}
+                  className="text-zinc-800 text-[8px] uppercase tracking-widest hover:text-zinc-600 transition-colors"
+                >
+                  {showHint ? "[ Close Hint ]" : "[ Request Hint ]"}
+                </button>
+                <AnimatePresence>
+                  {showHint && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-zinc-700 text-[9px] uppercase tracking-widest mt-2 italic"
+                    >
+                      Leak: It&apos;s Aryan&apos;s birthday
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </form>
         </div>
 
