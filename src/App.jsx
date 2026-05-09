@@ -310,7 +310,7 @@ export default function App() {
         <SuggestModal open={showSuggest} onClose={setShowSuggest} />
         
         <Dialog open={showMood} onOpenChange={setShowMood}>
-          <DialogContent className="max-w-[380px] p-0 bg-transparent border-none shadow-none">
+          <DialogContent className="max-w-[380px] p-0 bg-transparent border-none shadow-none [&>button]:right-6 [&>button]:top-6">
             <MoodRecommender movies={movies} onSelectMovie={(m) => { handleMovieClick(m); setShowMood(false); }} defaultOpen={true} hideFAB={true} />
           </DialogContent>
         </Dialog>
