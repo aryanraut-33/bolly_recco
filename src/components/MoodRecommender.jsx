@@ -189,7 +189,7 @@ export default function MoodRecommender({ movies, onSelectMovie, defaultOpen = f
           <DialogContent className="max-w-[340px] sm:max-w-md p-0 overflow-hidden bg-white rounded-[2rem] border-none shadow-2xl">
             <DialogTitle className="sr-only">Mood Recommender</DialogTitle>
             
-            <div className="p-6 text-center bg-white border-b border-gray-50/50">
+            <div className="p-8 text-center bg-white border-b border-gray-50/50">
               <h2 className="text-2xl font-outfit font-bold flex items-center justify-center gap-2">
                 <Sparkles className="w-6 h-6 text-purple-500" />
                 Mood Matcher

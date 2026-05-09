@@ -5,26 +5,29 @@ import { Search } from "lucide-react";
 export default function SearchModal({ open, onClose, searchQuery, setSearchQuery }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[340px] sm:max-w-md p-6 bg-white rounded-[2rem] border-none shadow-2xl">
+      <DialogContent className="max-w-md p-0 bg-transparent border-none shadow-none top-[33%] translate-y-[-50%] flex flex-col items-center">
         <DialogHeader className="p-0 border-none">
           <DialogTitle className="sr-only">Search Movies</DialogTitle>
         </DialogHeader>
-        <div className="pt-2">
-          <div className="relative w-full">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-coral" />
+        
+        <div className="w-full px-6 flex flex-col items-center">
+          <div className="relative w-full group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-zinc-500 group-focus-within:text-coral transition-colors" />
             <Input
-              placeholder="Search for a movie..."
+              placeholder="SEARCH MOVIES..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-14 bg-white h-14 rounded-2xl text-base font-poppins border-2 border-coral shadow-[0_0_15px_rgba(255,107,107,0.15)] focus-visible:ring-0 focus-visible:border-coral transition-colors"
+              className="pl-16 bg-black/40 backdrop-blur-xl h-16 rounded-full text-lg font-outfit text-white placeholder:text-zinc-600 border-zinc-800 focus-visible:ring-0 focus-visible:border-coral/50 transition-all tracking-widest uppercase"
               autoFocus
             />
           </div>
-          <p className="text-center text-[11px] text-muted-foreground mt-4 font-poppins px-4">
-            Start typing to instantly filter movies on the main screen.
+          
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] mt-6 font-poppins text-center opacity-60">
+            Real-time filtering enabled
           </p>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+

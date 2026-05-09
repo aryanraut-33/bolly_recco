@@ -55,7 +55,14 @@ export default function App() {
       setMovies(data);
       if (selectedMovie) {
         const updatedSelected = data.find(m => m.id === selectedMovie.id);
-        if (updatedSelected) setSelectedMovie(updatedSelected);
+        // Only update if something actually changed to prevent cyclical re-renders
+        if (updatedSelected && (
+          updatedSelected.watched !== selectedMovie.watched || 
+          updatedSelected.rating !== selectedMovie.rating || 
+          updatedSelected.review_text !== selectedMovie.review_text
+        )) {
+          setSelectedMovie(updatedSelected);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -77,7 +84,7 @@ export default function App() {
     if (auth) {
       fetchMovies();
       fetchGenres();
-      const interval = setInterval(() => fetchMovies(true), 5000);
+      const interval = setInterval(() => fetchMovies(true), 10000); // 10s
       return () => clearInterval(interval);
     }
   }, [auth, activeGenre, fetchMovies]);
@@ -308,7 +315,7 @@ export default function App() {
           </DialogContent>
         </Dialog>
 
-        <MovieModal movie={selectedMovie} open={showModal} onClose={() => setShowModal(false)} onUpdate={handleMovieUpdate} />
+        <MovieModal movie={selectedMovie} open={showModal} onClose={() => { setShowModal(false); setSelectedMovie(null); }} onUpdate={handleMovieUpdate} />
         <AdminPanel open={showAdmin} onClose={() => { setShowAdmin(false); setEditMovie(null); }} movie={editMovie} onSave={handleAdminSave} />
 
         <Dialog open={showAdminLogin} onOpenChange={setShowAdminLogin}>

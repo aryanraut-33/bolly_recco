@@ -70,7 +70,7 @@ app.get("/api/movies", async (req, res) => {
       FROM movies m
       LEFT JOIN reviews r ON m.id = r.movie_id
       WHERE m.genre LIKE ?
-      ORDER BY m.created_at DESC
+      ORDER BY m.created_at DESC, m.id DESC
     `
       )
       .all(`%${genre}%`);
@@ -81,7 +81,7 @@ app.get("/api/movies", async (req, res) => {
       SELECT m.*, r.watched, r.rating, r.review_text
       FROM movies m
       LEFT JOIN reviews r ON m.id = r.movie_id
-      ORDER BY m.created_at DESC
+      ORDER BY m.created_at DESC, m.id DESC
     `
       )
       .all();
@@ -201,7 +201,7 @@ app.delete("/api/movies/:id", async (req, res) => {
 // ── Review Routes ──────────────────────────────────────────
 app.put("/api/movies/:id/review", async (req, res) => {
   const { watched, rating, review_text } = req.body;
-  const movieId = req.params.id;
+  const movieId = Number(req.params.id);
 
   const existing = await db
     .prepare("SELECT * FROM reviews WHERE movie_id = ?")
@@ -212,14 +212,14 @@ app.put("/api/movies/:id/review", async (req, res) => {
       `UPDATE reviews SET watched=?, rating=?, review_text=?, updated_at=CURRENT_TIMESTAMP WHERE movie_id=?`
     ).run(
       watched !== undefined ? (watched ? 1 : 0) : existing.watched,
-      rating !== undefined ? rating : existing.rating,
+      rating !== undefined ? Number(rating) : existing.rating,
       review_text !== undefined ? review_text : existing.review_text,
       movieId
     );
   } else {
     await db.prepare(
       `INSERT INTO reviews (movie_id, watched, rating, review_text) VALUES (?, ?, ?, ?)`
-    ).run(movieId, watched ? 1 : 0, rating || 0, review_text || "");
+    ).run(movieId, watched ? 1 : 0, Number(rating) || 0, review_text || "");
   }
 
   const movie = await db

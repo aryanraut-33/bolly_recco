@@ -16,11 +16,21 @@ const client = createClient({
 // Wrapper to mimic better-sqlite3 API but with async/await
 const db = {
   prepare: (sql) => ({
-    all: async (...args) => (await client.execute({ sql, args })).rows,
-    get: async (...args) => (await client.execute({ sql, args })).rows[0],
+    all: async (...args) => {
+      const res = await client.execute({ sql, args });
+      return res.rows;
+    },
+    get: async (...args) => {
+      const res = await client.execute({ sql, args });
+      return res.rows[0];
+    },
     run: async (...args) => {
       const res = await client.execute({ sql, args });
-      return { lastInsertRowid: res.lastInsertRowid };
+      // Convert BigInt to Number for JSON safety
+      return { 
+        lastInsertRowid: res.lastInsertRowid ? Number(res.lastInsertRowid) : null,
+        changes: Number(res.rowsAffected || 0)
+      };
     }
   }),
   exec: async (sql) => await client.execute(sql),
