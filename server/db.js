@@ -5,7 +5,8 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = new Database(path.join(__dirname, "bollyrecco.db"));
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "bollyrecco.db");
+const db = new Database(dbPath);
 
 // Enable WAL mode for better performance
 db.pragma("journal_mode = WAL");
