@@ -1,47 +1,64 @@
-import Database from "better-sqlite3";
+import { createClient } from "@libsql/client";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "bollyrecco.db");
-const db = new Database(dbPath);
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL || `file:${path.join(__dirname, "bollyrecco.db")}`,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
-// Enable WAL mode for better performance
-db.pragma("journal_mode = WAL");
+// Wrapper to mimic better-sqlite3 API but with async/await
+const db = {
+  prepare: (sql) => ({
+    all: async (...args) => (await client.execute({ sql, args })).rows,
+    get: async (...args) => (await client.execute({ sql, args })).rows[0],
+    run: async (...args) => {
+      const res = await client.execute({ sql, args });
+      return { lastInsertRowid: res.lastInsertRowid };
+    }
+  }),
+  exec: async (sql) => await client.execute(sql),
+};
 
 // Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS movies (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    genre TEXT NOT NULL,
-    year INTEGER,
-    description TEXT,
-    poster_url TEXT,
-    tmdb_id INTEGER,
-    rating_avg REAL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+async function initDB() {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS movies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      genre TEXT NOT NULL,
+      year INTEGER,
+      description TEXT,
+      poster_url TEXT,
+      tmdb_id INTEGER,
+      rating_avg REAL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
 
-  CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    movie_id INTEGER NOT NULL UNIQUE,
-    watched INTEGER DEFAULT 0,
-    rating INTEGER DEFAULT 0,
-    review_text TEXT DEFAULT '',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
-  );
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      movie_id INTEGER NOT NULL UNIQUE,
+      watched INTEGER DEFAULT 0,
+      rating INTEGER DEFAULT 0,
+      review_text TEXT DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
+    );
 
-  CREATE TABLE IF NOT EXISTS suggestions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
 
 const SEED_MOVIES = [
   {
@@ -171,27 +188,16 @@ async function fetchTMDBPoster(searchQuery, year) {
 }
 
 async function seedDatabase() {
-  const existingCount = db
-    .prepare("SELECT COUNT(*) as count FROM movies")
-    .get().count;
+  await initDB();
+  const res = await db.prepare("SELECT COUNT(*) as count FROM movies").get();
+  const existingCount = res.count;
+  
   if (existingCount > 0) {
-    console.log(
-      `Database already has ${existingCount} movies. Skipping seed.`
-    );
+    console.log(`Database already has ${existingCount} movies. Skipping seed.`);
     return;
   }
 
   console.log("🎬 Seeding database with Bollywood movies...");
-
-  const insertMovie = db.prepare(`
-    INSERT INTO movies (title, genre, year, description, poster_url, tmdb_id)
-    VALUES (@title, @genre, @year, @description, @poster_url, @tmdb_id)
-  `);
-
-  const insertReview = db.prepare(`
-    INSERT INTO reviews (movie_id, watched, rating, review_text)
-    VALUES (@movie_id, 0, 0, '')
-  `);
 
   for (const movie of SEED_MOVIES) {
     console.log(`  🎥 Adding: ${movie.title}...`);
@@ -208,19 +214,18 @@ async function seedDatabase() {
       console.log(`    ⚠️  No TMDB poster (using placeholder)`);
     }
 
-    const result = insertMovie.run({
-      title: movie.title,
-      genre: movie.genre,
-      year: movie.year,
-      description: movie.description,
-      poster_url,
-      tmdb_id,
-    });
+    const result = await db.prepare(`
+      INSERT INTO movies (title, genre, year, description, poster_url, tmdb_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(movie.title, movie.genre, movie.year, movie.description, poster_url, tmdb_id);
 
-    insertReview.run({ movie_id: result.lastInsertRowid });
+    await db.prepare(`
+      INSERT INTO reviews (movie_id, watched, rating, review_text)
+      VALUES (?, 0, 0, '')
+    `).run(result.lastInsertRowid);
   }
 
   console.log("✅ Database seeded successfully!");
 }
 
-export { db, seedDatabase, fetchTMDBPoster };
+export { db, seedDatabase, fetchTMDBPoster, initDB };

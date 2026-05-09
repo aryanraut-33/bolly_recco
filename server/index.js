@@ -58,12 +58,12 @@ app.post("/api/admin-auth", (req, res) => {
 });
 
 // ── Movie Routes ───────────────────────────────────────────
-app.get("/api/movies", (req, res) => {
+app.get("/api/movies", async (req, res) => {
   const { genre } = req.query;
   let movies;
 
   if (genre && genre !== "All") {
-    movies = db
+    movies = await db
       .prepare(
         `
       SELECT m.*, r.watched, r.rating, r.review_text
@@ -75,7 +75,7 @@ app.get("/api/movies", (req, res) => {
       )
       .all(`%${genre}%`);
   } else {
-    movies = db
+    movies = await db
       .prepare(
         `
       SELECT m.*, r.watched, r.rating, r.review_text
@@ -90,8 +90,8 @@ app.get("/api/movies", (req, res) => {
   res.json(movies);
 });
 
-app.get("/api/movies/:id", (req, res) => {
-  const movie = db
+app.get("/api/movies/:id", async (req, res) => {
+  const movie = await db
     .prepare(
       `
     SELECT m.*, r.watched, r.rating, r.review_text
@@ -122,18 +122,18 @@ app.post("/api/movies", async (req, res) => {
     tmdb_id = tmdbData.tmdb_id;
   }
 
-  const result = db
+  const result = await db
     .prepare(
       `INSERT INTO movies (title, genre, year, description, poster_url, tmdb_id) VALUES (?, ?, ?, ?, ?, ?)`
     )
     .run(title, genre, year || null, description || "", poster_url, tmdb_id);
 
   // Create empty review entry
-  db.prepare(
+  await db.prepare(
     `INSERT INTO reviews (movie_id, watched, rating, review_text) VALUES (?, 0, 0, '')`
   ).run(result.lastInsertRowid);
 
-  const movie = db
+  const movie = await db
     .prepare(
       `
     SELECT m.*, r.watched, r.rating, r.review_text
@@ -149,7 +149,7 @@ app.post("/api/movies", async (req, res) => {
 
 app.put("/api/movies/:id", async (req, res) => {
   const { title, genre, year, description } = req.body;
-  const existing = db.prepare("SELECT * FROM movies WHERE id = ?").get(req.params.id);
+  const existing = await db.prepare("SELECT * FROM movies WHERE id = ?").get(req.params.id);
   if (!existing) return res.status(404).json({ error: "Movie not found" });
 
   // Re-fetch TMDB poster if title changed
@@ -163,7 +163,7 @@ app.put("/api/movies/:id", async (req, res) => {
     }
   }
 
-  db.prepare(
+  await db.prepare(
     `UPDATE movies SET title=?, genre=?, year=?, description=?, poster_url=?, tmdb_id=? WHERE id=?`
   ).run(
     title || existing.title,
@@ -175,7 +175,7 @@ app.put("/api/movies/:id", async (req, res) => {
     req.params.id
   );
 
-  const movie = db
+  const movie = await db
     .prepare(
       `
     SELECT m.*, r.watched, r.rating, r.review_text
@@ -189,26 +189,26 @@ app.put("/api/movies/:id", async (req, res) => {
   res.json(movie);
 });
 
-app.delete("/api/movies/:id", (req, res) => {
-  const existing = db.prepare("SELECT * FROM movies WHERE id = ?").get(req.params.id);
+app.delete("/api/movies/:id", async (req, res) => {
+  const existing = await db.prepare("SELECT * FROM movies WHERE id = ?").get(req.params.id);
   if (!existing) return res.status(404).json({ error: "Movie not found" });
 
-  db.prepare("DELETE FROM reviews WHERE movie_id = ?").run(req.params.id);
-  db.prepare("DELETE FROM movies WHERE id = ?").run(req.params.id);
+  await db.prepare("DELETE FROM reviews WHERE movie_id = ?").run(req.params.id);
+  await db.prepare("DELETE FROM movies WHERE id = ?").run(req.params.id);
   res.json({ success: true });
 });
 
 // ── Review Routes ──────────────────────────────────────────
-app.put("/api/movies/:id/review", (req, res) => {
+app.put("/api/movies/:id/review", async (req, res) => {
   const { watched, rating, review_text } = req.body;
   const movieId = req.params.id;
 
-  const existing = db
+  const existing = await db
     .prepare("SELECT * FROM reviews WHERE movie_id = ?")
     .get(movieId);
 
   if (existing) {
-    db.prepare(
+    await db.prepare(
       `UPDATE reviews SET watched=?, rating=?, review_text=?, updated_at=CURRENT_TIMESTAMP WHERE movie_id=?`
     ).run(
       watched !== undefined ? (watched ? 1 : 0) : existing.watched,
@@ -217,12 +217,12 @@ app.put("/api/movies/:id/review", (req, res) => {
       movieId
     );
   } else {
-    db.prepare(
+    await db.prepare(
       `INSERT INTO reviews (movie_id, watched, rating, review_text) VALUES (?, ?, ?, ?)`
     ).run(movieId, watched ? 1 : 0, rating || 0, review_text || "");
   }
 
-  const movie = db
+  const movie = await db
     .prepare(
       `
     SELECT m.*, r.watched, r.rating, r.review_text
@@ -237,28 +237,28 @@ app.put("/api/movies/:id/review", (req, res) => {
 });
 
 // ── Suggestions Routes ───────────────────────────────────────
-app.get("/api/suggestions", (req, res) => {
-  const suggestions = db.prepare("SELECT * FROM suggestions ORDER BY created_at DESC").all();
+app.get("/api/suggestions", async (req, res) => {
+  const suggestions = await db.prepare("SELECT * FROM suggestions ORDER BY created_at DESC").all();
   res.json(suggestions);
 });
 
-app.post("/api/suggestions", (req, res) => {
+app.post("/api/suggestions", async (req, res) => {
   const { title } = req.body;
   if (!title) return res.status(400).json({ error: "Title is required" });
   
-  const result = db.prepare("INSERT INTO suggestions (title) VALUES (?)").run(title);
-  const suggestion = db.prepare("SELECT * FROM suggestions WHERE id = ?").get(result.lastInsertRowid);
+  const result = await db.prepare("INSERT INTO suggestions (title) VALUES (?)").run(title);
+  const suggestion = await db.prepare("SELECT * FROM suggestions WHERE id = ?").get(result.lastInsertRowid);
   res.json(suggestion);
 });
 
-app.delete("/api/suggestions/:id", (req, res) => {
-  db.prepare("DELETE FROM suggestions WHERE id = ?").run(req.params.id);
+app.delete("/api/suggestions/:id", async (req, res) => {
+  await db.prepare("DELETE FROM suggestions WHERE id = ?").run(req.params.id);
   res.json({ success: true });
 });
 
 // ── Genres Route ───────────────────────────────────────────
-app.get("/api/genres", (req, res) => {
-  const movies = db.prepare("SELECT genre FROM movies").all();
+app.get("/api/genres", async (req, res) => {
+  const movies = await db.prepare("SELECT genre FROM movies").all();
   const genreSet = new Set();
   movies.forEach((m) => {
     m.genre.split(",").forEach((g) => genreSet.add(g.trim()));
