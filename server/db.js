@@ -39,8 +39,10 @@ async function initDB() {
       tmdb_id INTEGER,
       rating_avg REAL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+    )
+  `);
 
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS reviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       movie_id INTEGER NOT NULL UNIQUE,
@@ -49,14 +51,16 @@ async function initDB() {
       review_text TEXT DEFAULT '',
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
-    );
+    )
+  `);
 
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS suggestions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+    )
   `);
 }
 
