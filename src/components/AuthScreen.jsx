@@ -106,7 +106,7 @@ export default function AuthScreen({ onAuth }) {
                 <button
                   type="button"
                   onClick={() => setShowHint(!showHint)}
-                  className="text-zinc-800 text-[8px] uppercase tracking-widest hover:text-zinc-600 transition-colors"
+                  className="text-zinc-500 text-[8px] uppercase tracking-widest hover:text-zinc-300 transition-all duration-300 px-4 py-1 border border-zinc-900 rounded-full shadow-[0_0_10px_rgba(113,113,122,0.1)] hover:shadow-[0_0_15px_rgba(113,113,122,0.2)]"
                 >
                   {showHint ? "[ Close Hint ]" : "[ Request Hint ]"}
                 </button>
@@ -116,7 +116,7 @@ export default function AuthScreen({ onAuth }) {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="text-zinc-700 text-[9px] uppercase tracking-widest mt-2 italic"
+                      className="text-zinc-600 text-[9px] uppercase tracking-widest mt-3 italic drop-shadow-[0_0_5px_rgba(255,255,255,0.1)]"
                     >
                       Leak: It&apos;s Aryan&apos;s birthday
                     </motion.p>
